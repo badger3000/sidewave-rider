@@ -1,0 +1,16 @@
+{
+  "name": "Sidewave Rider",
+  "short_name": "Sidewave",
+  "description": "A side-scrolling skateboarding and surfing game",
+  "start_url": "/",
+  "display": "fullscreen",
+  "background_color": "#000000",
+  "theme_color": "#4CAF50",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
