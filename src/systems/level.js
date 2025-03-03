@@ -886,6 +886,11 @@ export default class LevelSystem {
    * @param {CanvasRenderingContext2D} context - Canvas context
    * @param {ResourceLoader} resources - Resource loader
    */
+  /**
+   * Render special zones
+   * @param {CanvasRenderingContext2D} context - Canvas context
+   * @param {ResourceLoader} resources - Resource loader
+   */
   renderSpecialZones(context, resources) {
     // Simple placeholder implementation
     for (const zone of this.specialZones) {
@@ -921,11 +926,14 @@ export default class LevelSystem {
       context.fillStyle = "#FFFFFF";
       context.font = "16px Arial";
       context.textAlign = "center";
-      context.fillText(
-        zone.subType.replace("_", " ").toUpperCase(),
-        screenX + zone.width / 2,
-        50
-      );
+
+      // Safely create zone label
+      let zoneLabel = "ZONE";
+      if (zone.subType) {
+        zoneLabel = zone.subType.replace(/_/g, " ").toUpperCase();
+      }
+
+      context.fillText(zoneLabel, screenX + zone.width / 2, 50);
     }
   }
 }
