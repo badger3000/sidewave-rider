@@ -13,7 +13,7 @@ export default class UIManager {
     this.context = canvas.getContext("2d");
 
     // UI state
-    this.currentScreen = "game"; // 'title', 'game', 'pause', 'gameover', 'levelcomplete'
+    this.currentScreen = "title"; // Start at title screen
     this.fadeAlpha = 0;
     this.fadeDirection = "none"; // 'in', 'out', 'none'
     this.fadeCallback = null;
@@ -35,10 +35,16 @@ export default class UIManager {
     this.notifications = [];
 
     // UI components
-    this.components = {};
+    this.components = {
+      modeSelector: {
+        selectedMode: "skate", // Default to skate mode
+        visible: true
+      }
+    };
 
     // Events
     this.onMenuAction = null;
+    this.onModeSelect = null;
   }
 
   /**
@@ -158,11 +164,11 @@ export default class UIManager {
    */
   renderTitleScreen(context) {
     // Background
-    context.fillStyle = "#87CEEB"; // Sky blue
+    context.fillStyle = "#000000"; // Black background
     context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Title
-    context.fillStyle = "white";
+    context.fillStyle = "#ffffff";
     context.font = "bold 48px Arial";
     context.textAlign = "center";
     context.fillText(
@@ -191,7 +197,7 @@ export default class UIManager {
     context.fillStyle =
       this.components.modeSelector?.selectedMode === "skate"
         ? "#4CAF50"
-        : "white";
+        : "#ffffff";
     context.fillText(
       "SKATE (S)",
       this.canvas.width / 2 - 100,
@@ -737,15 +743,23 @@ export default class UIManager {
     if (!modeSelector) return false;
 
     switch (input) {
+      case "start":
+        if (this.onMenuAction) {
+          this.onMenuAction("start", this.components.modeSelector.selectedMode);
+        }
+        return true;
       case "left":
-        modeSelector.selectedMode = "skate";
+      case "s":
+        this.components.modeSelector.selectedMode = "skate";
+        if (this.onModeSelect) {
+          this.onModeSelect("skate");
+        }
         return true;
       case "right":
-        modeSelector.selectedMode = "surf";
-        return true;
-      case "jump":
-        if (this.onMenuAction) {
-          this.onMenuAction("start", {mode: modeSelector.selectedMode});
+      case "d":
+        this.components.modeSelector.selectedMode = "surf";
+        if (this.onModeSelect) {
+          this.onModeSelect("surf");
         }
         return true;
       default:

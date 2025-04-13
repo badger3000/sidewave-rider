@@ -23,10 +23,11 @@ export default class InputHandler {
       "ArrowUp": "up",
       "ArrowDown": "down",
       "KeyA": "left",
-      "KeyD": "right",
+      "KeyD": "d",  // D key for surf mode
       "KeyW": "up",
-      "KeyS": "down",
-      "Space": "jump",
+      "KeyS": "s",  // S key for skate mode
+      "Space": "start",  // Space to start game
+      "Enter": "start",  // Also allow Enter to start
       "KeyZ": "trick1",
       "KeyX": "trick2",
       "KeyC": "trick3",

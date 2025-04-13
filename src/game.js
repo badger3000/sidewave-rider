@@ -16,8 +16,12 @@ export default class Game {
     this.canvas = canvas;
     this.context = canvas.getContext("2d");
 
+    // Set initial canvas size
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+
     // Game state
-    this.gameMode = GAME_MODES.SKATE; // Default game mode
+    this.gameMode = GAME_MODES.SKATE; // Will be set by mode selection
     this.isRunning = false;
     this.isPaused = false;
     this.currentLevel = 0;
@@ -34,6 +38,18 @@ export default class Game {
     this.resources = new ResourceLoader();
     this.onLoadProgress = null;
 
+    // Initialize UI first since we need it for the title screen
+    this.ui = new UIManager(canvas);
+    this.ui.onModeSelect = (mode) => {
+      this.gameMode = GAME_MODES[mode.toUpperCase()];
+    };
+    this.ui.onMenuAction = (action, selectedMode) => {
+      if (action === "start") {
+        this.gameMode = GAME_MODES[selectedMode.toUpperCase()];
+        this.startGame();
+      }
+    };
+
     // Systems to be initialized after assets are loaded
     this.physics = null;
     this.character = null;
@@ -41,7 +57,6 @@ export default class Game {
     this.scoring = null;
     this.input = null;
     this.animations = null;
-    this.ui = null;
     this.audio = null;
   }
 
@@ -55,31 +70,43 @@ export default class Game {
       this.resources.onProgress(this.onLoadProgress);
     }
 
-    // For development, we can simulate loading to test the UI
-    if (
-      process.env.NODE_ENV === "development" &&
-      !this.resources.get("skater")
-    ) {
-      return new Promise((resolve) => {
-        // Simulate loading progress
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += 0.1;
-          if (this.onLoadProgress) {
-            this.onLoadProgress(Math.min(progress, 1));
-          }
+    // For development, we'll use placeholder assets
+    if (process.env.NODE_ENV === "development") {
+      // Create placeholder assets
+      const skaterCanvas = document.createElement('canvas');
+      skaterCanvas.width = 32;
+      skaterCanvas.height = 48;
+      const skaterCtx = skaterCanvas.getContext('2d');
+      skaterCtx.fillStyle = '#4CAF50';
+      skaterCtx.fillRect(0, 0, 32, 48);
+      
+      const surferCanvas = document.createElement('canvas');
+      surferCanvas.width = 32;
+      surferCanvas.height = 48;
+      const surferCtx = surferCanvas.getContext('2d');
+      surferCtx.fillStyle = '#2196F3';
+      surferCtx.fillRect(0, 0, 32, 48);
 
-          if (progress >= 1) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 100);
-      });
+      // Store placeholder assets
+      this.resources.resources['skater'] = {
+        id: 'skater',
+        type: 'spritesheet',
+        resource: skaterCanvas,
+        loaded: true
+      };
+      
+      this.resources.resources['surfer'] = {
+        id: 'surfer',
+        type: 'spritesheet',
+        resource: surferCanvas,
+        loaded: true
+      };
+
+      return Promise.resolve();
     }
 
-    // Define assets to load
+    // For production, load real assets
     const assets = [
-      // Core assets
       {
         id: "skater",
         type: "spritesheet",
@@ -89,8 +116,7 @@ export default class Game {
         id: "surfer",
         type: "spritesheet",
         src: "/assets/images/sprites/surfer.png",
-      },
-      // Add more assets as they become available
+      }
     ];
 
     // Start loading
@@ -101,58 +127,22 @@ export default class Game {
    * Initialize game systems
    */
   initialize() {
-    // Get level data
-    this.levelData = getLevelByIndex(this.currentLevel, this.gameMode);
-
-    // Initialize physics system
-    this.physics = new PhysicsController(this.gameMode);
-
-    // Initialize animation system
-    this.animations = new AnimationSystem(this.resources);
-    this.setupAnimations();
-
-    // Initialize character controller
-    this.character = new CharacterController(
-      this.physics,
-      this.animations,
-      this.gameMode
-    );
-
-    // Initialize level system
-    this.level = new LevelSystem(this.gameMode, this.currentLevel);
-    this.level.initializeLevel();
-
-    // Initialize scoring system
-    this.scoring = new ScoringSystem(this.gameMode, this.levelData);
-
-    // Initialize input system
+    // Initialize input system first
     this.input = new InputHandler();
     this.input.onKeyChange = this.handleInputChange.bind(this);
 
-    // Initialize UI system
-    this.ui = new UIManager(this.canvas);
-    this.ui.onMenuAction = this.handleMenuAction.bind(this);
+    // Initialize animation system
+    this.animations = new AnimationSystem(this.resources);
+
+    // Show title screen and make sure we're not running yet
+    this.isRunning = false;
     this.ui.showTitleScreen();
 
-    // Initialize audio system
-    this.audio = new AudioManager();
-    this.setupAudio();
-
-    // Connect systems
-    this.connectSystems();
-
-    // Set up collision handlers
-    this.setupCollisionHandlers();
-
-    // Set up game state change handlers
-    this.setupStateHandlers();
-
     // Start game loop
-    this.isRunning = true;
     this.lastFrameTime = performance.now();
     requestAnimationFrame(this.gameLoop.bind(this));
 
-    console.log("Game initialized and running!");
+    console.log("Game initialized and ready!");
   }
 
   /**
@@ -292,11 +282,15 @@ export default class Game {
       this.fpsTimer = 0;
     }
 
-    // Update and render based on game state
-    if (this.isRunning) {
-      if (!this.isPaused) {
-        this.update();
-      }
+    // Clear the canvas
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Always render UI
+    this.ui.render(this.context);
+
+    // Update and render game state if running
+    if (this.isRunning && !this.isPaused) {
+      this.update();
       this.render();
     }
 
@@ -451,6 +445,11 @@ export default class Game {
    * @param {boolean} active - Whether action is active
    */
   handleInputChange(action, active) {
+    // Always handle UI inputs first
+    if (this.ui.handleMenuInput(action)) {
+      return;
+    }
+
     // Skip if game is paused
     if (this.isPaused && action !== "pause") return;
 
@@ -465,7 +464,9 @@ export default class Game {
       case "trick2":
       case "trick3":
         // Pass input to character controller
-        this.character.setKey(action, active);
+        if (this.character) {
+          this.character.setKey(action, active);
+        }
         break;
       case "pause":
         if (active) this.togglePause();
@@ -505,21 +506,48 @@ export default class Game {
    * Start game
    * @param {string} mode - Game mode
    */
-  startGame(mode) {
-    this.gameMode = mode;
+  startGame() {
     this.currentLevel = 0;
 
-    // Reload level data
+    // Get level data
     this.levelData = getLevelByIndex(this.currentLevel, this.gameMode);
 
-    // Reset game systems
-    this.resetGameSystems();
+    // Initialize physics system
+    this.physics = new PhysicsController(this.gameMode);
+
+    // Initialize animation system
+    this.animations = new AnimationSystem(this.resources);
+    this.setupAnimations();
+
+    // Initialize character controller
+    this.character = new CharacterController(
+      this.physics,
+      this.animations,
+      this.gameMode
+    );
+
+    // Initialize level system
+    this.level = new LevelSystem(this.gameMode, this.currentLevel);
+    this.level.initializeLevel();
+
+    // Initialize scoring system
+    this.scoring = new ScoringSystem(this.gameMode, this.levelData);
+
+    // Initialize audio system
+    this.audio = new AudioManager();
+    this.setupAudio();
+
+    // Connect all systems
+    this.connectSystems();
+    this.setupCollisionHandlers();
+    this.setupStateHandlers();
 
     // Show game UI
     this.ui.showGameHUD();
 
-    // Unpause game
+    // Start the game
     this.isPaused = false;
+    this.isRunning = true;
 
     // Switch music
     //this.audio.stopMusic(true);

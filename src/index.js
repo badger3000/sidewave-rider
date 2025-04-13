@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
   game.onLoadProgress = (progress) => {
     loadingBar.style.width = `${progress * 100}%`;
   };
-  
-  // Start loading assets
+
+  // Load assets first, then initialize
   game.loadAssets()
     .then(() => {
       // Hide loading screen when complete
