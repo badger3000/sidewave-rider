@@ -7,9 +7,11 @@ module.exports = (env, argv) => {
   const isProduction = argv.mode === "production";
 
   return {
-    entry: "./src/index.js",
+    entry: {
+      main: "./src/index.js"
+    },
     output: {
-      filename: isProduction ? "js/[name].[contenthash].js" : "js/[name].js",
+      filename: isProduction ? "[name].[contenthash].js" : "[name].js",
       path: path.resolve(__dirname, "dist"),
       publicPath: "/",
     },

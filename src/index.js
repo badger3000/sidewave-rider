@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Create the game instance
   const game = new Game(canvas);
   
+  // Show loading screen
+  loadingScreen.style.display = 'flex';
+  loadingBar.style.width = '0%';
+  
   // Setup loading progress callback
   game.onLoadProgress = (progress) => {
     loadingBar.style.width = `${progress * 100}%`;
@@ -19,8 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load assets first, then initialize
   game.loadAssets()
     .then(() => {
-      // Hide loading screen when complete
-      loadingScreen.style.display = 'none';
+      // Hide loading screen with fade
+      loadingScreen.style.opacity = '0';
+      setTimeout(() => {
+        loadingScreen.style.display = 'none';
+        loadingScreen.style.opacity = '1';
+      }, 500);
       
       // Initialize and start the game
       game.initialize();
